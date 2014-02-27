@@ -239,33 +239,86 @@ BEGIN
 		RAISERROR('Ett fel inträffade med telefonnummer/telefontyp! Försök igen', 16, 1)
 	END CATCH
 END
-*/
+
 -- 3.c
 ALTER PROCEDURE usp_FakturaDelete
 @FakturaID int = 0
 AS
 BEGIN
-	BEGIN TRY
-		DECLARE @SetMsg varchar(40)
-		
-		BEGIN TRAN
-			SET @SetMsg = 'Det gick inte att uppdatera artikeln!'
-			UPDATE Artikel
-			SET Antal = (Fakturarad.Antal + Artikel.Antal)
-			WHERE Artikel.ArtikelID = Fakturarad.ArtikelID
-		
-			SET @SetMsg = 'Det gick inte att ta bort fakturaraden!'
-			DELETE Fakturarad
-			WHERE Fakturarad.FakturaID = @FakturaID
-			
-			SET @SetMsg = 'Det gick inte att ta bort fakturan!'
-			DELETE Faktura
-			WHERE FakturaID = @FakturaID
-		
-		COMMIT TRAN
-		
-	END TRY
-	BEGIN CATCH
-		RAISERROR(@SetMsg, 16, 1)
-	END CATCH
+	IF EXISTS(SELECT FakturaID FROM Faktura WHERE FakturaID = @FakturaID)
+		BEGIN
+			BEGIN TRY
+				DECLARE @SetMsg varchar(40)
+				
+				BEGIN TRAN
+				
+					SET @SetMsg = 'Det gick inte att ta bort artikeln!'
+					DECLARE @ArtikelID int, @Antal int
+					DECLARE myCursor INSENSITIVE CURSOR
+					FOR SELECT ArtikelID, Antal
+					FROM Fakturarad;
+					
+					OPEN myCursor
+					FETCH myCursor INTO @ArtikelID, @Antal
+					WHILE @@FETCH_STATUS = 0
+						BEGIN
+							UPDATE Artikel
+							SET Antal = Antal + @Antal
+							WHERE ArtikelID = @ArtikelID;
+							FETCH myCursor INTO @ArtikelID, @Antal
+						END
+					CLOSE myCursor
+					DEALLOCATE myCursor;
+					
+					SET @SetMsg = 'Det gick inte att ta bort fakturaraden!'
+					DELETE FROM Fakturarad
+					WHERE FakturaID = @FakturaID
+					
+					SET @SetMsg = 'Det gick inte att ta bort fakturan!'
+					DELETE Faktura
+					WHERE FakturaID = @FakturaID
+				
+				COMMIT TRAN
+				
+			END TRY
+			BEGIN CATCH
+				ROLLBACK TRAN
+				RAISERROR(@SetMsg, 16, 1)
+			END CATCH
+		END
+	ELSE
+		BEGIN
+			RAISERROR('Fakturan finns inte! Försök igen.', 16, 1)
+		END
 END
+
+
+
+EXEC usp_FakturaDelete 3
+
+-- 4.a
+	--Tabell Skapad.
+
+-- 4.b
+ALTER TRIGGER ut_Artikel ON Artikel
+AFTER UPDATE
+AS
+BEGIN
+	IF UPDATE (Artnamn)
+		BEGIN
+			INSERT INTO Logging (tblID, tbl, kol, Old, New, Datum, Usr)
+			SELECT
+			i.ArtikelID,
+			'Artikel',
+			'Artnamn',
+			d.Artnamn,
+			i.Artnamn,
+			GETDATE(),
+			SYSTEM_USER
+			FROM inserted as i INNER JOIN deleted as d
+				ON i.ArtikelID = d.ArtikelID;
+		END
+END
+
+SELECT * FROM Logging
+*/
