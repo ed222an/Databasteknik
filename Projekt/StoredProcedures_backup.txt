@@ -1,0 +1,139 @@
+-- Visar alla medlemmar i listan, sorterar på efternamnet.
+ALTER PROCEDURE usp_GetMembers
+AS
+BEGIN
+	SELECT Fnamn + ' ' + Enamn AS Namn, PersNR, Address, PostNr, Ort
+	FROM Medlem
+	ORDER BY Enamn ASC
+END
+GO
+
+EXEC usp_GetMembers
+
+-- Visar detaljerad information om enskild medlem.
+ALTER PROCEDURE usp_GetMember
+@MedID int = 0
+AS
+BEGIN
+	IF EXISTS(SELECT MedID FROM Medlem WHERE MedID = @MedID)
+		BEGIN
+			SELECT Fnamn AS Förnamn, Enamn AS Efternamn, PersNR AS Personnummer,
+				Address, PostNr AS Postnummer, Ort, A.Akttyp AS Aktivitet, MA.Startdatum, MA.Avgiftstatus
+			FROM Medlem AS M
+			INNER JOIN Medlemsaktivitet AS MA
+				ON @MedID = MA.MedID
+			INNER JOIN Aktivitet AS A
+				ON MA.AktID = A.AktID
+			WHERE M.MedID = @MedID
+		END
+	ELSE
+		BEGIN
+			RAISERROR('Den valda medlemmen finns inte! Försök igen.', 16, 1)
+		END
+END
+GO
+
+EXEC usp_GetMember 3
+
+-- Lägger till en ny medlem.
+ALTER PROCEDURE usp_AddMember
+@Fnamn varchar(20),
+@Enamn varchar(20),
+@PersNR char(11),
+@Address varchar(30),
+@PostNR varchar(6),
+@Ort varchar(25)
+AS
+BEGIN
+	BEGIN TRY
+		INSERT INTO Medlem (Fnamn, Enamn, PersNR, Address, PostNr, Ort)
+		VALUES (@Fnamn, @Enamn, @PersNR, @Address, @PostNR, @Ort)
+	END TRY
+	BEGIN CATCH
+		RAISERROR('Ett fel inträffade! Försök igen', 16, 1)
+	END CATCH
+END
+GO
+
+--EXEC usp_AddMember 'Himla', 'Dunsson', '950629-3325', 'Kolhuggargränd 5', '39230', 'Kalmar'
+
+-- Tar bort vald medlem.
+ALTER PROCEDURE usp_DeleteMember
+@MedID int = 0
+AS
+BEGIN
+	IF EXISTS(SELECT MedID FROM Medlem WHERE MedID = @MedID)
+		BEGIN
+			DELETE Medlem
+			WHERE Medlem.MedID = @MedID
+		END
+	ELSE
+		BEGIN
+			RAISERROR('Den valda medlemmen finns inte! Försök igen.', 16, 1)
+		END
+END
+GO
+
+--EXEC usp_DeleteMember 4
+
+-- Lägger till en aktivitet till en medlem.
+ALTER PROCEDURE usp_AddMemberActivity
+@MedID int = 0,
+@AktID int = 0
+AS
+BEGIN
+	IF EXISTS(SELECT MedID FROM Medlem WHERE MedID = @MedID)
+		AND EXISTS(SELECT AktID FROM Aktivitet WHERE AktID = @AktID)
+		BEGIN
+			BEGIN TRY
+				INSERT INTO Medlemsaktivitet (AktID, MedID)
+				VALUES (@AktID, @MedID)
+			END TRY
+			BEGIN CATCH
+				RAISERROR('Ett oväntat fel inträffade! Försök igen.', 16, 1)
+			END CATCH
+		END
+	ELSE
+		BEGIN
+			RAISERROR('Den valda medlemmenaktiviteten finns inte! Försök igen.', 16, 1)
+		END
+END
+GO
+
+--EXEC usp_AddMemberActivity 0, 1
+
+-- Uppdaterar vald medlem.
+ALTER PROCEDURE usp_UpdateMember
+@MedID int = 0,
+@Fnamn varchar(20),
+@Enamn varchar(20),
+@PersNR char(11),
+@Address varchar(30),
+@PostNR varchar(6),
+@Ort varchar(25)
+AS
+BEGIN
+	IF EXISTS(SELECT MedID FROM Medlem WHERE MedID = @MedID)
+		BEGIN
+			BEGIN TRY
+				UPDATE Medlem
+				SET Fnamn = @Fnamn,
+				Enamn = @Enamn,
+				PersNR = @PersNR,
+				Address = @Address,
+				PostNr = @PostNR,
+				Ort = @Ort
+				WHERE MedID = @MedID
+			END TRY
+			BEGIN CATCH
+				RAISERROR('Ett oväntat fel inträffade! Försök igen.', 16, 1)
+			END CATCH
+		END
+	ELSE
+		BEGIN
+			RAISERROR('Den valda medlemmen finns inte! Försök igen.', 16, 1)
+		END
+END
+GO
+
+--EXEC usp_UpdateMember 6, 'Orvar', 'Karlsson', '950629-3325', 'Halleband 2', '32213', 'Strömsund'
