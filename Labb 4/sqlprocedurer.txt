@@ -1,0 +1,16 @@
+Labb 5
+
+2.a
+CREATE PROCEDURE usp_ArticleAdd
+@Artnamn varchar(30),
+@Antal smallint,
+@Pris decimal(6,2),
+@Rabatt decimal(6,2),
+@Plats char(10)
+AS
+BEGIN
+	INSERT INTO Artikel (Artnamn, Antal, Pris, Rabatt, Plats)
+	VALUES (@Artnamn, @Antal, @Pris, @Rabatt, @Plats)
+END
+GO
+EXEC usp_ArticleAdd 'USB-minne', 30, 200.50, 0.00, 'Förråd 10'

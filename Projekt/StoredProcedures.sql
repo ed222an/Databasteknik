@@ -1,30 +1,25 @@
 -- Visar alla medlemmar i listan, sorterar på efternamnet.
-ALTER PROCEDURE usp_GetMembers
+ALTER PROCEDURE appSchema.usp_GetMembers
 AS
 BEGIN
-	SELECT Fnamn + ' ' + Enamn AS Namn, PersNR, Address, PostNr, Ort
+	SELECT MedID, Fnamn, Enamn, PersNR, BefID, Address, PostNr, Ort
 	FROM Medlem
 	ORDER BY Enamn ASC
 END
 GO
 
-EXEC usp_GetMembers
+EXEC appSchema.usp_GetMembers
 
 -- Visar detaljerad information om enskild medlem.
-ALTER PROCEDURE usp_GetMember
+ALTER PROCEDURE appSchema.usp_GetMember
 @MedID int = 0
 AS
 BEGIN
 	IF EXISTS(SELECT MedID FROM Medlem WHERE MedID = @MedID)
 		BEGIN
-			SELECT Fnamn AS Förnamn, Enamn AS Efternamn, PersNR AS Personnummer,
-				Address, PostNr AS Postnummer, Ort, A.Akttyp AS Aktivitet, MA.Startdatum, MA.Avgiftstatus
-			FROM Medlem AS M
-			INNER JOIN Medlemsaktivitet AS MA
-				ON @MedID = MA.MedID
-			INNER JOIN Aktivitet AS A
-				ON MA.AktID = A.AktID
-			WHERE M.MedID = @MedID
+			SELECT Fnamn, Enamn, PersNR, Address, PostNr, Ort
+			FROM Medlem
+			WHERE MedID = @MedID
 		END
 	ELSE
 		BEGIN
@@ -33,10 +28,10 @@ BEGIN
 END
 GO
 
-EXEC usp_GetMember 3
+EXEC appSchema.usp_GetMember 6
 
 -- Lägger till en ny medlem.
-ALTER PROCEDURE usp_AddMember
+ALTER PROCEDURE appSchema.usp_AddMember
 @Fnamn varchar(20),
 @Enamn varchar(20),
 @PersNR char(11),
@@ -55,10 +50,10 @@ BEGIN
 END
 GO
 
---EXEC usp_AddMember 'Himla', 'Dunsson', '950629-3325', 'Kolhuggargränd 5', '39230', 'Kalmar'
+--EXEC appSchema.usp_AddMember 'Himla', 'Dunsson', '950629-3325', 'Kolhuggargränd 5', '39230', 'Kalmar'
 
 -- Tar bort vald medlem.
-ALTER PROCEDURE usp_DeleteMember
+ALTER PROCEDURE appSchema.usp_DeleteMember
 @MedID int = 0
 AS
 BEGIN
@@ -74,10 +69,10 @@ BEGIN
 END
 GO
 
---EXEC usp_DeleteMember 4
+--EXEC appSchema.usp_DeleteMember 4
 
 -- Lägger till en aktivitet till en medlem.
-ALTER PROCEDURE usp_AddMemberActivity
+ALTER PROCEDURE appSchema.usp_AddMemberActivity
 @MedID int = 0,
 @AktID int = 0
 AS
@@ -100,10 +95,10 @@ BEGIN
 END
 GO
 
---EXEC usp_AddMemberActivity 0, 1
+--EXEC appSchema.usp_AddMemberActivity 0, 1
 
 -- Uppdaterar vald medlem.
-ALTER PROCEDURE usp_UpdateMember
+ALTER PROCEDURE appSchema.usp_UpdateMember
 @MedID int = 0,
 @Fnamn varchar(20),
 @Enamn varchar(20),
@@ -136,4 +131,4 @@ BEGIN
 END
 GO
 
---EXEC usp_UpdateMember 6, 'Orvar', 'Karlsson', '950629-3325', 'Halleband 2', '32213', 'Strömsund'
+--EXEC appSchema.usp_UpdateMember 6, 'Orvar', 'Karlsson', '950629-3325', 'Halleband 2', '32213', 'Strömsund'
